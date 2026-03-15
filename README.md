@@ -49,7 +49,7 @@ This project is designed to run without user intervention. To schedule the **Sys
 
 Give execution permissions to the scripts:
 ```bash
-chmod +x system_health.sh backup_tool.sh
+chmod u+x system_health.sh backup_tool.sh
 ```
 
 ### System Health Monitor
