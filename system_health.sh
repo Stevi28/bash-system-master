@@ -44,25 +44,28 @@ else
 fi
 df -h / | awk 'NR==2 {printf "  Used: %s / Total: %s / Available: %s\n", $3, $2, $4}'
 
-# 5. Memory Check
+# 5. Memory Check (macOS uses vm_stat instead of free)
 echo ""
 echo "[ MEMORY USAGE ]"
 if [ "$OS" = "Darwin" ]; then
-    # macOS: calculate from vm_stat
     page_size=$(pagesize)
     pages_free=$(vm_stat | awk '/Pages free/ {print $3}' | tr -d '.')
+    pages_speculative=$(vm_stat | awk '/Pages speculative/ {print $3}' | tr -d '.')
     pages_active=$(vm_stat | awk '/Pages active/ {print $3}' | tr -d '.')
     pages_inactive=$(vm_stat | awk '/Pages inactive/ {print $3}' | tr -d '.')
     pages_wired=$(vm_stat | awk '/Pages wired/ {print $4}' | tr -d '.')
-    used_bytes=$(( (pages_active + pages_wired) * page_size ))
-    free_bytes=$(( pages_free * page_size ))
-    total_bytes=$(( (pages_active + pages_inactive + pages_free + pages_wired) * page_size ))
+    pages_compressed=$(vm_stat | awk '/Pages occupied by compressor/ {print $5}' | tr -d '.')
+
+    used_bytes=$(( (pages_active + pages_wired + pages_compressed) * page_size ))
+    free_bytes=$(( (pages_free + pages_speculative + pages_inactive) * page_size ))
+    total_bytes=$(( used_bytes + free_bytes ))
+
     used_gb=$(echo "scale=1; $used_bytes / 1073741824" | bc)
     free_gb=$(echo "scale=1; $free_bytes / 1073741824" | bc)
     total_gb=$(echo "scale=1; $total_bytes / 1073741824" | bc)
+
     echo "  Used: ${used_gb}GB / Total: ${total_gb}GB / Free: ${free_gb}GB"
 else
-    # Linux: use free
     free -h | awk 'NR==2 {printf "  Used: %s / Total: %s / Free: %s\n", $3, $2, $4}'
 fi
 
